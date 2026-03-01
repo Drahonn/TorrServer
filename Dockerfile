@@ -55,8 +55,5 @@ COPY ./docker-entrypoint.sh /docker-entrypoint.sh
 RUN apk add --no-cache --update ffmpeg \
     && chmod +x /docker-entrypoint.sh
 
-VOLUME /opt/ts
-EXPOSE 8090
-
 ENTRYPOINT ["/docker-entrypoint.sh"]
 ### BUILD MAIN IMAGE END ###
