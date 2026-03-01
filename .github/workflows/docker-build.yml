@@ -56,15 +56,23 @@ jobs:
 
       - name: Cleanup old tags except latest
         if: success()
+        env:
+          DOCKER_USER: ${{ secrets.DOCKER_USERNAME }}
         run: |
-          TOKEN=$(curl -s -u "${{ secrets.DOCKER_USERNAME }}:${{ secrets.DOCKER_TOKEN }}" "https://hub.docker.com/v2/users/login/" | jq -r .token)
-          
-          TAGS=$(curl -s -H "Authorization: Bearer $TOKEN" \
-            "https://hub.docker.com/v2/repositories/${{ secrets.DOCKER_USERNAME }}/torrserver/tags/?page_size=100" \
-            | jq -r '.results[].name' | grep -v '^latest$' | grep -v '^sha256-')
+          TOKEN=$(curl -s -u "${{ secrets.DOCKER_USERNAME }}:${{ secrets.DOCKER_TOKEN }}" \
+            "https://hub.docker.com/v2/users/login/" | jq -r .token)
 
-          for TAG in $TAGS; do
-            echo "Deleting old tags: $TAG"
-            curl -X DELETE -H "Authorization: Bearer $TOKEN" \
-              "https://hub.docker.com/v2/repositories/${{ secrets.DOCKER_USERNAME }}/torrserver/tags/$TAG/"
-          done
+          TAGS=$(curl -s -H "Authorization: Bearer $TOKEN" \
+            "https://hub.docker.com/v2/repositories/$DOCKER_USER/torrserver/tags/?page_size=100" \
+            | jq -r '.results // [] | .[].name' \
+            | grep -v '^latest$' | grep -v '^sha256-' || true)
+
+          if [ -z "$TAGS" ]; then
+            echo "There are no old tags to delete (or the repository is empty)"
+          else
+            for TAG in $TAGS; do
+              echo "Removing the old tag(s): $TAG"
+              curl -X DELETE -H "Authorization: Bearer $TOKEN" \
+                "https://hub.docker.com/v2/repositories/$DOCKER_USER/torrserver/tags/$TAG/"
+            done
+          fi
