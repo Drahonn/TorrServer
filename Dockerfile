@@ -58,7 +58,5 @@ RUN apk add --no-cache --update ffmpeg \
 VOLUME /opt/ts
 EXPOSE 8090
 
-USER 1000:1000
-
 ENTRYPOINT ["/docker-entrypoint.sh"]
 ### BUILD MAIN IMAGE END ###
