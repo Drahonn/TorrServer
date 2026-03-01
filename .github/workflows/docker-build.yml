@@ -10,7 +10,6 @@ on:
 jobs:
   build:
     runs-on: ubuntu-latest
-
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -23,6 +22,7 @@ jobs:
           if [ "$LATEST" != "$CURRENT" ]; then
             echo "New release detected: $LATEST"
             echo "new_release=true" >> $GITHUB_OUTPUT
+            echo "version=$LATEST" >> $GITHUB_OUTPUT
           else
             echo "No new release"
             echo "new_release=false" >> $GITHUB_OUTPUT
@@ -51,7 +51,13 @@ jobs:
           platforms: linux/amd64,linux/arm64,linux/arm/v7
           push: true
           tags: |
-            drahonn/torrserver:latest
+            ${{ secrets.DOCKER_USERNAME }}/torrserver:latest
+            ${{ secrets.DOCKER_USERNAME }}/torrserver:${{ steps.check-release.outputs.version }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+          provenance: false
+          sbom: false
+          outputs: type=image,name=${{ secrets.DOCKER_USERNAME }}/torrserver,push=true
 
       - name: Cleanup old tags except latest
         if: success()
@@ -60,12 +66,10 @@ jobs:
         run: |
           TOKEN=$(curl -s -u "${{ secrets.DOCKER_USERNAME }}:${{ secrets.DOCKER_TOKEN }}" \
             "https://hub.docker.com/v2/users/login/" | jq -r .token)
-
           TAGS=$(curl -s -H "Authorization: Bearer $TOKEN" \
             "https://hub.docker.com/v2/repositories/$DOCKER_USER/torrserver/tags/?page_size=100" \
             | jq -r '.results // [] | .[].name' \
-            | grep -v '^latest$' | grep -v '^sha256-' || true)
-
+            | grep -v '^latest$' | grep -v '^MatriX\.' | grep -v '^sha256-' || true)
           if [ -z "$TAGS" ]; then
             echo "There are no old tags to delete (or the repository is empty)"
           else
