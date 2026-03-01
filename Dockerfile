@@ -38,26 +38,24 @@ RUN apt update && apt install -y upx-ucl && upx --best --lzma ./torrserver
 
 ### BUILD MAIN IMAGE START ###
 FROM alpine
+
 ENV TS_CONF_PATH="/opt/ts/config"
 ENV TS_LOG_PATH="/opt/ts/log"
 ENV TS_TORR_DIR="/opt/ts/torrents"
 ENV TS_PORT=8090
+ENV TS_HTTPAUTH=0
 ENV GODEBUG=madvdontneed=1
-COPY --from=compressed ./torrserver /usr/bin/torrserver
 
-RUN echo '#!/bin/sh' > /docker-entrypoint.sh && \
-    echo 'set -e' >> /docker-entrypoint.sh && \
-    echo '[ -n "$TS_PORT" ] && PORT_OPT="--port $TS_PORT"' >> /docker-entrypoint.sh && \
-    echo '[ -n "$TS_HTTPAUTH" ] && AUTH_OPT="--httpauth $TS_HTTPAUTH"' >> /docker-entrypoint.sh && \
-    echo '[ -n "$TS_CONF_PATH" ] && CONF_OPT="--confpath $TS_CONF_PATH"' >> /docker-entrypoint.sh && \
-    echo '[ -n "$TS_TORR_DIR" ] && TORR_OPT="--torrpath $TS_TORR_DIR"' >> /docker-entrypoint.sh && \
-    echo '[ -n "$TS_SSL" ] && SSL_OPT="--ssl $TS_SSL"' >> /docker-entrypoint.sh && \  # Добавил SSL
-    echo 'exec /usr/bin/torrserver $PORT_OPT $AUTH_OPT $CONF_OPT $TORR_OPT $SSL_OPT "$@"' >> /docker-entrypoint.sh && \
-    chmod +x /docker-entrypoint.sh
-RUN apk add --no-cache --update ffmpeg
+COPY --from=compressed ./torrserver /usr/bin/torrserver
+COPY ./docker-entrypoint.sh /docker-entrypoint.sh
+
+RUN apk add --no-cache --update ffmpeg \
+    && chmod +x /docker-entrypoint.sh
+
 VOLUME /opt/ts
 EXPOSE 8090
+
 USER 1000:1000
+
 ENTRYPOINT ["/docker-entrypoint.sh"]
-CMD ["--logpath", "/opt/ts/log"]
 ### BUILD MAIN IMAGE END ###
