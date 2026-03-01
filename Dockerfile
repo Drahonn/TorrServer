@@ -20,8 +20,11 @@ COPY --from=front /app/build /opt/src/web/build
 WORKDIR /opt/src
 ARG TARGETOS
 ARG TARGETARCH
+ARG TARGETVARIANT
+ARG GOARM
 ENV GOOS=$TARGETOS
 ENV GOARCH=$TARGETARCH
+ENV GOARM=$GOARM
 RUN apk add --update g++ \
     && go run gen_web.go \
     && cd server \
