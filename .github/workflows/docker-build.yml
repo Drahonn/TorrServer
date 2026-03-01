@@ -60,11 +60,11 @@ jobs:
           TOKEN=$(curl -s -u "${{ secrets.DOCKER_USERNAME }}:${{ secrets.DOCKER_TOKEN }}" "https://hub.docker.com/v2/users/login/" | jq -r .token)
           
           TAGS=$(curl -s -H "Authorization: Bearer $TOKEN" \
-            "https://hub.docker.com/v2/repositories/drahonn/torrserver/tags/?page_size=100" \
+            "https://hub.docker.com/v2/repositories/${{ secrets.DOCKER_USERNAME }}/torrserver/tags/?page_size=100" \
             | jq -r '.results[].name' | grep -v '^latest$' | grep -v '^sha256-')
 
           for TAG in $TAGS; do
             echo "Deleting old tags: $TAG"
             curl -X DELETE -H "Authorization: Bearer $TOKEN" \
-              "https://hub.docker.com/v2/repositories/drahonn/torrserver/tags/$TAG/"
+              "https://hub.docker.com/v2/repositories/${{ secrets.DOCKER_USERNAME }}/torrserver/tags/$TAG/"
           done
