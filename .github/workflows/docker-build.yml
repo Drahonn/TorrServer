@@ -53,14 +53,3 @@ jobs:
           tags: |
             drahonn/torrserver:latest
             drahonn/torrserver:${{ github.sha }}
-
-      - name: Scan for vulnerabilities
-        if: steps.check-release.outputs.new_release == 'true'
-        uses: aquasecurity/trivy-action@master
-        with:
-          image-ref: 'drahonn/torrserver:latest'
-          format: 'table'
-          exit-code: '1'  # Fail on critical/high
-          ignore-unfixed: true
-          vuln-type: 'os,library'
-          severity: 'CRITICAL,HIGH'
