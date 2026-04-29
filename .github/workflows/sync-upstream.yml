@@ -1,0 +1,29 @@
+name: Sync with upstream TorrServer
+
+on:
+  schedule:
+    - cron: '*/10 * * * *'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout fork
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Add upstream
+        run: |
+          git remote add upstream https://github.com/YouROK/TorrServer.git
+          git fetch upstream
+
+      - name: Sync main with upstream
+        run: |
+          git checkout main
+          git merge upstream/main --no-edit || true
+          git push origin main
