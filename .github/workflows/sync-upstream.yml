@@ -16,14 +16,15 @@ jobs:
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
+          ref: master
 
       - name: Add upstream
         run: |
           git remote add upstream https://github.com/YouROK/TorrServer.git
           git fetch upstream
 
-      - name: Sync main with upstream
+      - name: Sync master with upstream
         run: |
-          git checkout main
-          git merge upstream/main --no-edit || true
-          git push origin main
+          git checkout master
+          git merge upstream/master --no-edit || true
+          git push origin master
