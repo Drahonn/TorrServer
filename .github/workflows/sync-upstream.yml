@@ -2,7 +2,7 @@ name: Sync with upstream TorrServer
 
 on:
   schedule:
-    - cron: '*/10 * * * *'
+    - cron: '0 */1 * * *'
   workflow_dispatch:
 
 permissions:
@@ -11,20 +11,36 @@ permissions:
 jobs:
   sync:
     runs-on: ubuntu-latest
+
     steps:
       - name: Checkout fork
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
-          ref: master
+          token: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Add upstream
+      - name: Sync master with upstream (force upstream on conflicts)
         run: |
-          git remote add upstream https://github.com/YouROK/TorrServer.git
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+
+          git remote add upstream https://github.com/YouROK/TorrServer.git || true
           git fetch upstream
 
-      - name: Sync master with upstream
-        run: |
           git checkout master
-          git merge upstream/master --no-edit || true
+
+          echo "=== Starting merge with upstream ==="
+
+          if git merge upstream/master \
+            --no-edit \
+            --no-ff \
+            -X theirs; then
+            echo "✅ Merge is successful"
+          else
+            echo "⚠️ There have been conflicts, but we're moving forward"
+            git checkout --theirs .
+            git add .
+            git commit --no-edit || true
+          fi
+
           git push origin master
