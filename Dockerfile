@@ -14,16 +14,16 @@ RUN yarn run build
 ### FRONT BUILD END ###
 
 ### BUILD TORRSERVER MULTIARCH START ###
-FROM --platform=$BUILDPLATFORM golang:1.26.3-alpine AS builder
+FROM --platform=$BUILDPLATFORM golang:1.26.4-alpine AS builder
 
 COPY . /opt/src
 COPY --from=front /app/build /opt/src/web/build
 WORKDIR /opt/src
 ARG TARGETOS
 ARG TARGETARCH
-ARG TARGETVARIANT
-ARG GOARM
-ENV GOOS=$TARGETOS
+ARG VERSION=MatriX.Docker
+
+# Step for multiarch build with docker buildx
 ENV GOARCH=$TARGETARCH
 ENV GOARM=$GOARM
 RUN apk add --update g++ \
@@ -31,7 +31,7 @@ RUN apk add --update g++ \
     && cd server \
     && go mod tidy \
     && go clean -i -r -cache \
-    && go build -ldflags '-w -s' -o "torrserver" ./cmd
+    && go build -ldflags "-s -w -checklinkname=0 -X server/version.Version=${VERSION}" --o "torrserver" ./cmd
 ### BUILD TORRSERVER MULTIARCH END ###
 
 ### UPX COMPRESSING START ###
