@@ -22,12 +22,12 @@ jobs:
           echo "version=$VERSION" >> $GITHUB_OUTPUT
           echo "Detected upstream version: $VERSION"
 
-      - name: Print developer files for diagnostics
+      - name: Patch Dockerfile to use modern UPX 4.x
         run: |
-          echo "=== Upstream Dockerfile Content ==="
-          if [ -f Dockerfile ]; then cat Dockerfile; else echo "Dockerfile not found at root"; fi
-          echo "=== Upstream Entrypoint Content ==="
-          if [ -f docker-entrypoint.sh ]; then cat docker-entrypoint.sh; else echo "docker-entrypoint.sh not found at root"; fi
+          # Replace outdated apt upx-ucl with official UPX 4.2.4 binary download
+          sed -i 's|apt update && apt install -y upx-ucl|apt update \&\& apt install -y curl xz-utils \&\& curl -L https://github.com/upx/upx/releases/download/v4.2.4/upx-4.2.4-amd64_linux.tar.xz \| tar -xJ --strip-components=1 -C /usr/local/bin/ upx-4.2.4-amd64_linux/upx|g' Dockerfile
+          echo "=== Patched Dockerfile ==="
+          cat Dockerfile
 
       - name: Login to Docker Hub
         uses: docker/login-action@v3
