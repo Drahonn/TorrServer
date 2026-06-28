@@ -22,12 +22,12 @@ jobs:
           echo "version=$VERSION" >> $GITHUB_OUTPUT
           echo "Detected upstream version: $VERSION"
 
-      - name: Patch Dockerfile for GoReleaser glibc compatibility
+      - name: Print developer files for diagnostics
         run: |
-          # Inject gcompat package right after the Alpine FROM instruction
-          sed -i '/^[fF][rR][oOMmM] [aA][lL][pP][iI][nN][eE]/a RUN apk add --no-cache gcompat' Dockerfile
-          echo "=== Patched Dockerfile ==="
-          cat Dockerfile
+          echo "=== Upstream Dockerfile Content ==="
+          if [ -f Dockerfile ]; then cat Dockerfile; else echo "Dockerfile not found at root"; fi
+          echo "=== Upstream Entrypoint Content ==="
+          if [ -f docker-entrypoint.sh ]; then cat docker-entrypoint.sh; else echo "docker-entrypoint.sh not found at root"; fi
 
       - name: Login to Docker Hub
         uses: docker/login-action@v3
