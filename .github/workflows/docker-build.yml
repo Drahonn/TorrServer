@@ -22,11 +22,57 @@ jobs:
           echo "version=$VERSION" >> $GITHUB_OUTPUT
           echo "Detected upstream version: $VERSION"
 
-      - name: Patch Dockerfile to bypass broken UPX compression
+      - name: Overwrite Dockerfile with clean multi-arch version
         run: |
-          # Change target source from corrupted UPX stage to clean compiled binary from builder stage
-          sed -i 's|--from=compressed ./torrserver|--from=builder /opt/src/server/torrserver|g' Dockerfile
-          echo "=== Patched Dockerfile ==="
+          cat << 'EOF' > Dockerfile
+          ### FRONT BUILD START ###
+          FROM --platform=$BUILDPLATFORM node:16-alpine AS front
+          WORKDIR /app
+          ARG REACT_APP_SERVER_HOST='.'
+          ARG REACT_APP_TMDB_API_KEY=''
+          ARG PUBLIC_URL=''
+          ENV REACT_APP_SERVER_HOST=$REACT_APP_SERVER_HOST
+          ENV REACT_APP_TMDB_API_KEY=$REACT_APP_TMDB_API_KEY
+          ENV PUBLIC_URL=$PUBLIC_URL
+          COPY ./web/package.json ./web/yarn.lock ./
+          RUN yarn install
+          COPY ./web .
+          RUN yarn run build
+
+          ### BUILD TORRSERVER MULTIARCH START ###
+          FROM golang:1.26-alpine AS builder
+          COPY . /opt/src
+          COPY --from=front /app/build /opt/src/web/build
+          WORKDIR /opt/src
+          ARG TARGETOS
+          ARG TARGETARCH
+          ARG VERSION=MatriX.Docker
+
+          RUN apk add --update --no-cache g++ gcc musl-dev \
+              && go run gen_web.go \
+              && cd server \
+              && go mod tidy \
+              && go clean -i -r -cache \
+              && go build -ldflags "-s -w -checklinkname=0 -X server/version.Version=${VERSION}" -o "torrserver" ./cmd
+
+          ### BUILD MAIN IMAGE START ###
+          FROM alpine
+          ENV TS_CONF_PATH="/opt/ts/config"
+          ENV TS_LOG_PATH="/opt/ts/log"
+          ENV TS_TORR_DIR="/opt/ts/torrents"
+          ENV TS_PORT=8090
+          ENV TS_HTTPAUTH=0
+          ENV GODEBUG=madvdontneed=1
+
+          COPY --from=builder /opt/src/server/torrserver /usr/bin/torrserver
+          COPY ./docker-entrypoint.sh /docker-entrypoint.sh
+
+          RUN apk add --no-cache --update ffmpeg ca-certificates tzdata \
+              && chmod +x /docker-entrypoint.sh
+
+          ENTRYPOINT ["/docker-entrypoint.sh"]
+          EOF
+          echo "=== Brand New Dockerfile Created ==="
           cat Dockerfile
 
       - name: Login to Docker Hub
