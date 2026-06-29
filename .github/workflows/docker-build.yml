@@ -22,10 +22,10 @@ jobs:
           echo "version=$VERSION" >> $GITHUB_OUTPUT
           echo "Detected upstream version: $VERSION"
 
-      - name: Patch Dockerfile to use modern UPX 4.x
+      - name: Patch Dockerfile to bypass broken UPX compression
         run: |
-          # Replace outdated apt upx-ucl with official UPX 4.2.4 binary download
-          sed -i 's|apt update && apt install -y upx-ucl|apt update \&\& apt install -y curl xz-utils \&\& curl -L https://github.com/upx/upx/releases/download/v4.2.4/upx-4.2.4-amd64_linux.tar.xz \| tar -xJ --strip-components=1 -C /usr/local/bin/ upx-4.2.4-amd64_linux/upx|g' Dockerfile
+          # Change target source from corrupted UPX stage to clean compiled binary from builder stage
+          sed -i 's|--from=compressed ./torrserver|--from=builder /opt/src/server/torrserver|g' Dockerfile
           echo "=== Patched Dockerfile ==="
           cat Dockerfile
 
